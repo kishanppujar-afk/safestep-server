@@ -2,12 +2,13 @@ require('dotenv').config();
 const express = require('express');
 const nodemailer = require('nodemailer');
 const cors = require('cors');
-const path = require('path');
+const fs = require('fs');
+// removed path import because static serving is handled differently on serverless
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
+// Note: express.static removed because Vercel serverless does not serve static files this way
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -92,9 +93,15 @@ app.get('/api/status', (req, res) => {
   });
 });
 
-// Dashboard page
+// Dashboard page - serve the static HTML file directly (works on serverless)
 app.get('/dashboard', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+  try {
+    const html = fs.readFileSync('./public/dashboard.html', 'utf8');
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
+  } catch (e) {
+    res.status(500).send('Dashboard not found: ' + e.message);
+  }
 });
 
 app.get('/', (req, res) => {
